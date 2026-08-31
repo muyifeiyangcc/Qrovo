@@ -1,0 +1,7 @@
+platform :ios, '15.0'
+use_frameworks!
+
+target 'Qrovo' do
+  pod 'IQKeyboardManagerSwift'
+  pod 'SnapKit'
+end
