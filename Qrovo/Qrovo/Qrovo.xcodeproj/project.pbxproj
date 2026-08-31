@@ -246,6 +246,10 @@
 				DEVELOPMENT_TEAM = 6NUFR97X3A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Qrovo/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Qrovo needs access to your camera so you can take photos, record task videos, and update your profile picture.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Use your location to add the place where you completed a field note.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Qrovo needs access to your microphone so you can record sound while capturing task videos and send voice messages in chats.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Qrovo needs access to your photo library so you can select and upload photos or videos to complete tasks and set your profile picture.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -283,6 +287,10 @@
 				DEVELOPMENT_TEAM = 6NUFR97X3A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Qrovo/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Qrovo needs access to your camera so you can take photos, record task videos, and update your profile picture.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Use your location to add the place where you completed a field note.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Qrovo needs access to your microphone so you can record sound while capturing task videos and send voice messages in chats.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Qrovo needs access to your photo library so you can select and upload photos or videos to complete tasks and set your profile picture.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

@@ -193,6 +193,9 @@ final class QRepository {
     private(set) var deletedAccountIDs: Set<String> = []
     private(set) var accounts: [QAccount] = []
     private var hasSeeded = false
+    private let testAccountUserID = "account-123"
+    private let legacyDemoUserID = "me"
+    private let demoContentUserID = "elena-rostova"
 
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -238,7 +241,7 @@ final class QRepository {
         hasSeeded = true
         let now = Date()
         users = [
-            QUser(id: "me", name: "Elena Rostova", handle: "elenarostova", bio: "High-five a shadow on the wall.", avatarAsset: "72bda1ec4e72db33ba53f233656b68d6.jpg", followerCount: 3, followingCount: 1),
+            QUser(id: "elena-rostova", name: "Elena Rostova", handle: "elenarostova", bio: "High-five a shadow on the wall.", avatarAsset: "72bda1ec4e72db33ba53f233656b68d6.jpg", followerCount: 3, followingCount: 1),
             QUser(id: "lucas-weber", name: "Lucas Weber", handle: "lucasweber", bio: "Show your shoes with a unique pavement texture.", avatarAsset: "2ce3699bccacbcdc4834aafb339b31ee.jpg", followerCount: 0, followingCount: 0),
             QUser(id: "sophie-laurent", name: "Sophie Laurent", handle: "sophielaurent", bio: "Hold a warm mug in front of a view.", avatarAsset: "30fba94d9ce1e1a07ed7244eb7fbf330.jpg", followerCount: 0, followingCount: 0),
             QUser(id: "joan-rossi", name: "Joan Rossi", handle: "joanrossi", bio: "Make a heart frame with your hands.", avatarAsset: "96a7a77524fc36b9d5deeeb6d65bd0c9.jpg", followerCount: 0, followingCount: 0),
@@ -262,7 +265,7 @@ final class QRepository {
             QDrawTask(id: "TASK-010", title: "Toast your drink to the sunset", body: "Hold up your beverage/water bottle against a glowing sunset street view.", mediaAsset: "download (8).png", durationHours: 60, distanceMiles: nil)
         ]
         posts = [
-            QPost(id: "post-001", authorID: "me", title: "High-five a shadow on the wall", body: "High-fived my 5 PM shadow on the brick wall. We're both ready for the weekend.", location: "London", mediaAssets: ["0316748052e217c050d4b79ed9cb0880.jpg", "a8d4cbb2e651c735cfe8a780dcbd38e3.jpg"], likes: 0, comments: [QComment(id: "comment-001", authorID: "lucas-weber", text: "Spot on!", createdAt: now.addingTimeInterval(-3600))], isLiked: false, isSaved: false, completed: true, createdAt: now.addingTimeInterval(-24 * 3600), taskID: "TASK-001"),
+            QPost(id: "post-001", authorID: "elena-rostova", title: "High-five a shadow on the wall", body: "High-fived my 5 PM shadow on the brick wall. We're both ready for the weekend.", location: "London", mediaAssets: ["0316748052e217c050d4b79ed9cb0880.jpg", "a8d4cbb2e651c735cfe8a780dcbd38e3.jpg"], likes: 0, comments: [QComment(id: "comment-001", authorID: "lucas-weber", text: "Spot on!", createdAt: now.addingTimeInterval(-3600))], isLiked: false, isSaved: false, completed: true, createdAt: now.addingTimeInterval(-24 * 3600), taskID: "TASK-001"),
             QPost(id: "post-002", authorID: "lucas-weber", title: "Show your shoes with a unique pavement texture", body: "Sneakers, wet cobblestones, and gold leaves. Autumn sounds like this.", location: "London", mediaAssets: ["300682874217c12dceea4e1a5b5b6c13.jpg", "7cd521c3afd09eb12af9ea179090f2f0.jpg"], likes: 0, comments: [], isLiked: false, isSaved: false, completed: true, createdAt: now.addingTimeInterval(-24 * 3600), taskID: "TASK-002"),
             QPost(id: "post-003", authorID: "sophie-laurent", title: "Hold a warm mug in front of a view", body: "Rainy streets, steaming mug, zero rush. My favorite 10-minute escape.", location: "London", mediaAssets: ["b0594573e6bd3f302e37944f582149d8.mp4"], likes: 0, comments: [QComment(id: "comment-003", authorID: "joan-rossi", text: "Cozy escape!", createdAt: now.addingTimeInterval(-3 * 3600))], isLiked: false, isSaved: false, completed: true, createdAt: now.addingTimeInterval(-18 * 3600), taskID: "TASK-003"),
             QPost(id: "post-004", authorID: "joan-rossi", title: "Make a heart frame with your hands", body: "Framed this quiet spire before the city woke up. A tiny heart for a big view.", location: "London", mediaAssets: ["ebe4d780a773078e1d8da61949f77778.mp4"], likes: 0, comments: [QComment(id: "comment-004", authorID: "freja-lindqvist", text: "Peaceful moment!", createdAt: now.addingTimeInterval(-4 * 3600))], isLiked: false, isSaved: false, completed: true, createdAt: now.addingTimeInterval(-12 * 3600), taskID: "TASK-004"),
@@ -275,12 +278,13 @@ final class QRepository {
         ]
         conversations = []
         activities = []
-        accounts = [QAccount(userID: "me", email: "123@gmail.com", password: "12345678")]
+        accounts = [QAccount(userID: testAccountUserID, email: "123@gmail.com", password: "12345678")]
         if defaults.integer(forKey: "qrovoSeedVersion") < 2 {
             ["qUsers", "qPosts", "qConversations", "qActivities"].forEach { defaults.removeObject(forKey: $0) }
             defaults.set(2, forKey: "qrovoSeedVersion")
         }
         restorePersistedState()
+        migrateLegacyDemoIdentity()
         // Restore the wallet before migration persists the complete repository.
         // Otherwise migrateSeedContent() can write the initial in-memory zero over
         // the balance that was saved after a successful purchase.
@@ -296,8 +300,9 @@ final class QRepository {
         let validUserIDs = Set(users.map(\.id))
         blockedUserIDs = blockedUserIDs.intersection(validUserIDs)
         followedUserIDs = followedUserIDs.intersection(validUserIDs)
+        if let savedUserID = defaults.string(forKey: "currentUserID"), savedUserID == testAccountUserID { ensureTestAccountUser() }
         if let savedUserID = defaults.string(forKey: "currentUserID"), !deletedAccountIDs.contains(savedUserID), users.contains(where: { $0.id == savedUserID }) { currentUserID = savedUserID }
-        else if defaults.bool(forKey: "signedIn"), !deletedAccountIDs.contains("me") { currentUserID = "me" }
+        else if defaults.bool(forKey: "signedIn"), !deletedAccountIDs.contains(testAccountUserID) { ensureTestAccountUser(); currentUserID = testAccountUserID }
         if let currentUserID {
             if followingIDsByUserID[currentUserID] == nil { followingIDsByUserID[currentUserID] = followedUserIDs }
             followedUserIDs = followingIDs(for: currentUserID)
@@ -310,6 +315,7 @@ final class QRepository {
 
     func authenticate(email: String, password: String) -> Bool {
         guard let account = accounts.first(where: { $0.email.caseInsensitiveCompare(email.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame && $0.password == password }), !deletedAccountIDs.contains(account.userID) else { return false }
+        if account.email.caseInsensitiveCompare("123@gmail.com") == .orderedSame { ensureTestAccountUser() }
         currentUserID = account.userID
         defaults.set(true, forKey: "signedIn")
         defaults.set(account.userID, forKey: "currentUserID")
@@ -498,6 +504,46 @@ final class QRepository {
         if let value = defaults.dictionary(forKey: "followingIDsByUserID") as? [String: [String]] {
             followingIDsByUserID = value.mapValues(Set.init)
         }
+    }
+
+    private func ensureTestAccountUser() {
+        guard accounts.contains(where: { $0.userID == testAccountUserID && $0.email.caseInsensitiveCompare("123@gmail.com") == .orderedSame }) else { return }
+        guard !users.contains(where: { $0.id == testAccountUserID }) else { return }
+        users.append(QUser(id: testAccountUserID, name: "123", handle: "123", bio: "", avatarAsset: nil, followerCount: 0, followingCount: 0))
+        followingIDsByUserID[testAccountUserID] = followingIDsByUserID[testAccountUserID] ?? []
+    }
+
+    private func migrateLegacyDemoIdentity() {
+        guard !defaults.bool(forKey: "qrovoIdentityMigrationV1") else { return }
+
+        if let legacyIndex = users.firstIndex(where: { $0.id == legacyDemoUserID }) {
+            let legacyUser = users[legacyIndex]
+            users[legacyIndex] = QUser(id: demoContentUserID, name: legacyUser.name, handle: legacyUser.handle, bio: legacyUser.bio, avatarAsset: legacyUser.avatarAsset, followerCount: legacyUser.followerCount, followingCount: legacyUser.followingCount, birthday: legacyUser.birthday, gender: legacyUser.gender, location: legacyUser.location)
+        }
+        accounts = accounts.map { account in
+            guard account.userID == legacyDemoUserID, account.email.caseInsensitiveCompare("123@gmail.com") == .orderedSame else { return account }
+            return QAccount(userID: testAccountUserID, email: account.email, password: account.password)
+        }
+        posts = posts.map { post in
+            guard post.authorID == legacyDemoUserID else { return post }
+            let authorID = post.id == "post-001" ? demoContentUserID : testAccountUserID
+            return QPost(id: post.id, authorID: authorID, title: post.title, body: post.body, location: post.location, mediaAssets: post.mediaAssets, likes: post.likes, comments: post.comments, isLiked: post.isLiked, isSaved: post.isSaved, completed: post.completed, createdAt: post.createdAt, taskID: post.taskID)
+        }
+        conversations = conversations.map { conversation in
+            QConversation(id: conversation.id, userID: conversation.userID == legacyDemoUserID ? testAccountUserID : conversation.userID, ownerID: conversation.ownerID == legacyDemoUserID ? testAccountUserID : conversation.ownerID, messages: conversation.messages, unreadCount: conversation.unreadCount)
+        }
+        activities = activities.map { activity in
+            QActivity(id: activity.id, kind: activity.kind, actorID: activity.actorID == legacyDemoUserID ? testAccountUserID : activity.actorID, postID: activity.postID, ownerID: activity.ownerID == legacyDemoUserID ? testAccountUserID : activity.ownerID, createdAt: activity.createdAt)
+        }
+        followingIDsByUserID = followingIDsByUserID.reduce(into: [:]) { result, pair in
+            let key = pair.key == legacyDemoUserID ? testAccountUserID : pair.key
+            result[key] = Set(pair.value.map { $0 == legacyDemoUserID ? testAccountUserID : $0 })
+        }
+        followedUserIDs = Set(followedUserIDs.map { $0 == legacyDemoUserID ? testAccountUserID : $0 })
+        blockedUserIDs = Set(blockedUserIDs.map { $0 == legacyDemoUserID ? testAccountUserID : $0 })
+        deletedAccountIDs = Set(deletedAccountIDs.map { $0 == legacyDemoUserID ? testAccountUserID : $0 })
+        if defaults.string(forKey: "currentUserID") == legacyDemoUserID { defaults.set(testAccountUserID, forKey: "currentUserID") }
+        defaults.set(true, forKey: "qrovoIdentityMigrationV1")
     }
 
     private func migrateSeedContent() {
@@ -707,7 +753,8 @@ extension QRepository {
         defaults.removeObject(forKey: "seedFollowedUserID")
         defaults.removeObject(forKey: "seedRelationshipsV1")
         ["qUsers", "qPosts", "qConversations", "qActivities", "qReports", "qAccounts", "currentUserID", "followedUserIDs", "followingIDsByUserID"].forEach { defaults.removeObject(forKey: $0) }
-        if let myIndex = users.firstIndex(where: { $0.id == "me" }) {
+        ensureTestAccountUser()
+        if let myIndex = users.firstIndex(where: { $0.id == testAccountUserID }) {
             users[myIndex].followerCount = 1800
             users[myIndex].followingCount = 318
         }
@@ -715,7 +762,8 @@ extension QRepository {
 
     func visualSetSignedIn(_ value: Bool) {
         if value {
-            currentUserID = "me"
+            ensureTestAccountUser()
+            currentUserID = testAccountUserID
             defaults.set(true, forKey: "signedIn")
             notify()
         } else {
@@ -762,7 +810,7 @@ extension QRepository {
 #endif
 
 final class EULAViewController: QViewController {
-    override func viewDidLoad() { super.viewDidLoad(); view.backgroundColor = UIColor.black.withAlphaComponent(0.68); let card = UIView(); card.backgroundColor = QTheme.surface; card.layer.cornerRadius = 24; card.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]; card.clipsToBounds = true; view.addSubview(card); card.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([card.leadingAnchor.constraint(equalTo: view.leadingAnchor), card.trailingAnchor.constraint(equalTo: view.trailingAnchor), card.bottomAnchor.constraint(equalTo: view.bottomAnchor)]); let background = UIImageView(image: UIImage.qAsset("alert_bg")); background.contentMode = .scaleAspectFill; background.alpha = 0.42; card.addSubview(background); background.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([background.leadingAnchor.constraint(equalTo: card.leadingAnchor), background.trailingAnchor.constraint(equalTo: card.trailingAnchor), background.topAnchor.constraint(equalTo: card.topAnchor), background.bottomAnchor.constraint(equalTo: card.bottomAnchor)]); let grabber = UIView(); grabber.backgroundColor = QTheme.mutedText; grabber.layer.cornerRadius = 3; card.addSubview(grabber); grabber.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([grabber.topAnchor.constraint(equalTo: card.topAnchor, constant: 9), grabber.centerXAnchor.constraint(equalTo: card.centerXAnchor), grabber.widthAnchor.constraint(equalToConstant: 36), grabber.heightAnchor.constraint(equalToConstant: 5)]); let title = label("EULA", size: 26, weight: .bold); title.textAlignment = .center; let text = label("Welcome to Qrovo! To create a positive, safe and standardized space for beauty and makeup sharing, the following content is strictly prohibited on the app:\n\n1. Any content involving child harm, pornography and other materials detrimental to minors’ physical and mental health, including but not limited to texts, images, videos or comments that insult, defame or improperly use minors’ portraits and information.\n\n2. False and harmful public information, including false content generated by AI or other means that disrupts public order, especially fake beauty tutorials, misleading skincare and makeup guidance, and false public opinion content.\n\n3. Violent content, cyber bullying, and any content that promotes pornography, illegal acts or disrupts the network ecological environment.", size: 12, color: QTheme.secondaryText); text.textAlignment = .center; text.numberOfLines = 0; let cancel = button("Cancel", height: 48, filled: false); let publish = button("Publish", height: 48); let buttons = UIStackView(arrangedSubviews: [cancel, publish]); buttons.axis = .horizontal; buttons.spacing = 8; buttons.distribution = .fillEqually; let stack = UIStackView(arrangedSubviews: [title, text, buttons]); stack.axis = .vertical; stack.spacing = 14; card.addSubview(stack); stack.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 24), stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -24), stack.topAnchor.constraint(equalTo: grabber.bottomAnchor, constant: 22), stack.bottomAnchor.constraint(equalTo: card.safeAreaLayoutGuide.bottomAnchor, constant: -18)]); cancel.addAction(UIAction { [weak self] _ in self?.dismiss(animated: true) }, for: .touchUpInside); publish.addAction(UIAction { [weak self] _ in QRepository.shared.setEULAAccepted(); self?.dismiss(animated: false) }, for: .touchUpInside) }
+    override func viewDidLoad() { super.viewDidLoad(); view.backgroundColor = UIColor.black.withAlphaComponent(0.68); let card = UIView(); card.backgroundColor = QTheme.surface; card.layer.cornerRadius = 24; card.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]; card.clipsToBounds = true; view.addSubview(card); card.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([card.leadingAnchor.constraint(equalTo: view.leadingAnchor), card.trailingAnchor.constraint(equalTo: view.trailingAnchor), card.bottomAnchor.constraint(equalTo: view.bottomAnchor)]); let background = UIImageView(image: UIImage.qAsset("alert_bg")); background.contentMode = .scaleAspectFill; background.alpha = 0.42; card.addSubview(background); background.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([background.leadingAnchor.constraint(equalTo: card.leadingAnchor), background.trailingAnchor.constraint(equalTo: card.trailingAnchor), background.topAnchor.constraint(equalTo: card.topAnchor), background.bottomAnchor.constraint(equalTo: card.bottomAnchor)]); let grabber = UIView(); grabber.backgroundColor = QTheme.mutedText; grabber.layer.cornerRadius = 3; card.addSubview(grabber); grabber.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([grabber.topAnchor.constraint(equalTo: card.topAnchor, constant: 9), grabber.centerXAnchor.constraint(equalTo: card.centerXAnchor), grabber.widthAnchor.constraint(equalToConstant: 36), grabber.heightAnchor.constraint(equalToConstant: 5)]); let title = label("EULA", size: 26, weight: .bold); title.textAlignment = .center; let text = label("Welcome to Qrovo! To foster a positive, safe, and engaging environment for our random task community, the following content is strictly prohibited:\n\n1. Any content involving child harm, pornography, or material detrimental to minors' physical and mental well-being, including but not limited to texts, images, videos, or comments that insult or exploit minors.\n\n2. False or harmful public information, including deceptive AI-generated content that disrupts public order, especially fake task guides, misleading instructions, or fraud.\n\n3. Violent content, cyberbullying, or material that promotes illegal acts, pornography, or harms the digital ecosystem. Specifically, uploading pornographic, violent, or illegal task submissions is strictly forbidden.\n\nIf any violations are detected, your uploaded posts, voice messages, comments, and other content will be removed, and your account may be restricted or banned. By clicking \"Agree\", you commit to following these rules.", size: 12, color: QTheme.secondaryText); text.textAlignment = .center; text.numberOfLines = 0; let cancel = button("Cancel", height: 48, filled: false); let publish = button("Publish", height: 48); let buttons = UIStackView(arrangedSubviews: [cancel, publish]); buttons.axis = .horizontal; buttons.spacing = 8; buttons.distribution = .fillEqually; let stack = UIStackView(arrangedSubviews: [title, text, buttons]); stack.axis = .vertical; stack.spacing = 14; card.addSubview(stack); stack.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 24), stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -24), stack.topAnchor.constraint(equalTo: grabber.bottomAnchor, constant: 22), stack.bottomAnchor.constraint(equalTo: card.safeAreaLayoutGuide.bottomAnchor, constant: -18)]); cancel.addAction(UIAction { [weak self] _ in self?.dismiss(animated: true) }, for: .touchUpInside); publish.addAction(UIAction { [weak self] _ in QRepository.shared.setEULAAccepted(); self?.dismiss(animated: false) }, for: .touchUpInside) }
 }
 
 private final class EULAViewControllerLegacy: QViewController {

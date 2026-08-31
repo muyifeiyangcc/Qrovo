@@ -2,14 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Take a profile photo.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Choose a profile photo.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Record voice messages in chat.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Use your location to add the place where you completed a field note.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

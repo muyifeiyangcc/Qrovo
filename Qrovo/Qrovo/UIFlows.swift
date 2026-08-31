@@ -366,10 +366,15 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
     override func viewDidLayoutSubviews() { super.viewDidLayoutSubviews(); updateTabBarVisibility() }
     private func updateTabBarVisibility() { tabBar.isHidden = true; tabBar.alpha = 0; guard let nav = selectedViewController as? UINavigationController else { return }; let isRoot = nav.viewControllers.count == 1; customTabBar.isHidden = !isRoot; nav.additionalSafeAreaInsets.bottom = isRoot ? 83 : 0 }
     func navigationController(_ navigationController: UINavigationController, didShow viewController: UIViewController, animated: Bool) { updateTabBarVisibility() }
-    func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool { guard let index = viewControllers?.firstIndex(of: viewController) else { return true }; if !repo.isSignedIn && index >= 2 { let alert = UIAlertController(title: "Sign In Required", message: "Please sign in to continue.", preferredStyle: .alert); alert.addAction(UIAlertAction(title: "Cancel", style: .cancel)); alert.addAction(UIAlertAction(title: "Sign In", style: .default) { _ in AppCoordinator.shared.showAuth() }); present(alert, animated: true); return false }; return true }
+    func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool { guard let index = viewControllers?.firstIndex(of: viewController) else { return true }; if !repo.isSignedIn && index >= 2 { showGuestSignInSheet(); return false }; return true }
+    private func showGuestSignInSheet() { let alert = QAlertViewController(titleText: "Sign In Required", messageText: "Please sign in to continue.", cancelTitle: nil, confirmTitle: "Sign In") { AppCoordinator.shared.showAuth() }; alert.modalPresentationStyle = .overFullScreen; alert.modalTransitionStyle = .crossDissolve; present(alert, animated: true) }
     func presentPublish(for post: QPost) { let task = post.taskID.flatMap { repo.drawTask(id: $0) } ?? QDrawTask(id: "post-\(post.id)", title: post.title, body: "Complete the task and share your proof.", mediaAsset: post.mediaAssets.first ?? "default_photo", durationHours: 24, distanceMiles: nil); presentPublish(for: task) }
     func presentPublish(for task: QDrawTask) {
         guard repo.isSignedIn else { showToast("Sign in to publish a task"); return }
+        if !repo.hasDrawnToday {
+            presentClaimedPublish(task)
+            return
+        }
         let confirmation = QAlertViewController(titleText: "Use this task?", messageText: "Using this task requires 120 coins.", cancelTitle: "Cancel", confirmTitle: "Confirm") { [weak self] in
             guard let self else { return }
             guard self.repo.spendCoins(120) else {
@@ -391,19 +396,16 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
                 self.present(insufficient, animated: true)
                 return
             }
-            self.claimedPublishTask = task
-            self.claimedPublishAt = Date()
-            let publish = PublishViewController(task: task, claimedAt: self.claimedPublishAt)
-            publish.modalPresentationStyle = .fullScreen
-            self.present(publish, animated: true)
+            self.presentClaimedPublish(task)
         }
         confirmation.modalPresentationStyle = .overFullScreen
         confirmation.modalTransitionStyle = .crossDissolve
         present(confirmation, animated: true)
     }
+    private func presentClaimedPublish(_ task: QDrawTask) { claimedPublishTask = task; claimedPublishAt = Date(); let publish = PublishViewController(task: task, claimedAt: claimedPublishAt); publish.modalPresentationStyle = .fullScreen; present(publish, animated: true) }
     func clearClaimedPublishTask() { claimedPublishTask = nil; claimedPublishAt = nil }
     func showExplore() { guard let controllers = viewControllers, controllers.indices.contains(0), let nav = controllers[0] as? UINavigationController else { return }; nav.popToRootViewController(animated: false); selectedIndex = 0; customTabBar.selectedIndex = 0; updateTabBarVisibility() }
-    private func selectTab(_ index: Int) { guard let controllers = viewControllers, controllers.indices.contains(index) else { return }; guard tabBarController(self, shouldSelect: controllers[index]) else { return }; if index == 2 { guard let task = claimedPublishTask else { showToast("Draw a task before publishing"); return }; selectedIndex = index; customTabBar.selectedIndex = index; let publish = PublishViewController(task: task, claimedAt: claimedPublishAt); publish.modalPresentationStyle = .fullScreen; present(publish, animated: true); return }; selectedIndex = index; customTabBar.selectedIndex = index }
+    private func selectTab(_ index: Int) { guard let controllers = viewControllers, controllers.indices.contains(index) else { return }; guard tabBarController(self, shouldSelect: controllers[index]) else { return }; if index == 2 { guard let task = claimedPublishTask else { showToast("Draw a task before publishing"); return }; let publish = PublishViewController(task: task, claimedAt: claimedPublishAt); publish.modalPresentationStyle = .fullScreen; present(publish, animated: true); return }; selectedIndex = index; customTabBar.selectedIndex = index }
     private func showToast(_ text: String) {
         let toast = UIView()
         toast.backgroundColor = UIColor(hex: "242033").withAlphaComponent(0.96)
