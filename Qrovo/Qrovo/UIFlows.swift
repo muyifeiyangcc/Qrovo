@@ -80,9 +80,9 @@ final class SignUpViewController: FormViewController {
         addField("Password", confirm)
         addBottomButton("Sign up") { [weak self] in
             guard let self else { return }
-            let passwordIsSixDigits = password.text?.count == 6 && password.text?.allSatisfy({ $0.isNumber }) == true
-            guard email.text?.contains("@") == true, passwordIsSixDigits, password.text == confirm.text else {
-                showMessage("Check your details", "Enter a valid email and matching six-digit password.")
+            let passwordIsValid = (password.text?.count ?? 0) >= 6 && password.text?.allSatisfy({ $0.isNumber }) == true
+            guard email.text?.contains("@") == true, passwordIsValid, password.text == confirm.text else {
+                showMessage("Check your details", "Enter a valid email and matching password of at least six digits.")
                 return
             }
             guard QRepository.shared.register(email: email.text ?? "", password: password.text ?? "") else {
