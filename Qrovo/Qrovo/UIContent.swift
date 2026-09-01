@@ -113,7 +113,7 @@ final class DrawViewController: RootPageViewController {
         notice.textAlignment = .center; notice.heightAnchor.constraint(equalToConstant: 16).isActive = true
         body.addArrangedSubview(notice); body.setCustomSpacing(12, after: notice)
 
-        let draw = button(isFreeDraw ? "Draw a task" : "120 coins Draw a task", height: 52)
+        let draw = button(isFreeDraw ? "Draw a task" : "Unlock Task • 120 Coins", height: 52)
         draw.setImage(UIImage.qAsset("Icon2")?.withRenderingMode(.alwaysOriginal), for: .normal)
         draw.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
         draw.addAction(UIAction { [weak self] _ in self?.drawTask() }, for: .touchUpInside)

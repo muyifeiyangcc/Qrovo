@@ -413,7 +413,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
             presentClaimedPublish(task)
             return
         }
-        let confirmation = QAlertViewController(titleText: "Use this task?", messageText: "Using this task requires 120 coins.", cancelTitle: "Cancel", confirmTitle: "Confirm") { [weak self] in
+        let confirmation = QAlertViewController(titleText: "Unlock Task?", messageText: "Are you sure you want to spend 120 Coins to unlock the task?", cancelTitle: "Cancel", confirmTitle: "Sure") { [weak self] in
             guard let self else { return }
             guard self.repo.spendCoins(120) else {
                 let insufficient = QAlertViewController(titleText: "Not Enough Coins", messageText: "You need 120 coins to use this task. Please recharge.", cancelTitle: nil, confirmTitle: "Recharge") { [weak self] in
