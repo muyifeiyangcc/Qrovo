@@ -8,12 +8,12 @@ final class LandingViewController: QViewController {
         let image = UIImageView(image: UIImage.qAsset("login_bg")); image.contentMode = .scaleAspectFill; image.clipsToBounds = true; view.addSubview(image); image.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([image.topAnchor.constraint(equalTo: view.topAnchor), image.bottomAnchor.constraint(equalTo: view.bottomAnchor), image.leadingAnchor.constraint(equalTo: view.leadingAnchor), image.trailingAnchor.constraint(equalTo: view.trailingAnchor)])
         let newButton = button("I’m New", height: 44); let emailButton = button("Sign In By Email", height: 44)
         [newButton, emailButton].forEach { $0.layer.cornerRadius = 13 }
-        let signup = UIButton(type: .system); let signupText = NSMutableAttributedString(string: "Don't have an account? ", attributes: [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: UIColor.white]); signupText.append(NSAttributedString(string: "Sign up", attributes: [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: QTheme.highlight, .underlineStyle: NSUnderlineStyle.single.rawValue])); signup.setAttributedTitle(signupText, for: .normal); signup.addAction(UIAction { [weak self] _ in self?.push(SignUpViewController()) }, for: .touchUpInside)
+        let signup = UIButton(type: .system); let signupText = NSMutableAttributedString(string: "Don't have an account? ", attributes: [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: UIColor.white]); signupText.append(NSAttributedString(string: "Sign up", attributes: [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: QTheme.highlight, .underlineStyle: NSUnderlineStyle.single.rawValue])); signup.setAttributedTitle(signupText, for: .normal);
         let checkbox = UIButton(type: .custom); checkbox.configuration = nil; checkbox.backgroundColor = .clear; checkbox.setImage(UIImage(systemName: "circle"), for: .normal); checkbox.setImage(UIImage(systemName: "circle.inset.filled"), for: .selected); checkbox.tintColor = .white; checkbox.adjustsImageWhenHighlighted = false; checkbox.widthAnchor.constraint(equalToConstant: 16).isActive = true; checkbox.heightAnchor.constraint(equalToConstant: 16).isActive = true; checkbox.addAction(UIAction { [weak self] action in guard let sender = action.sender as? UIButton else { return }; sender.isSelected.toggle(); self?.agreement = sender.isSelected }, for: .touchUpInside)
         let agreementPrefix = label("By continuing you agree to our", size: 10, color: QTheme.secondaryText); agreementPrefix.numberOfLines = 1
-        let termsLink = UIButton(type: .custom); termsLink.configuration = nil; termsLink.backgroundColor = .clear; termsLink.setAttributedTitle(NSAttributedString(string: "Terms of Service", attributes: [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: QTheme.highlight, .underlineStyle: NSUnderlineStyle.single.rawValue]), for: .normal); termsLink.addAction(UIAction { [weak self] _ in self?.push(PolicyViewController(title: "Terms of Service")) }, for: .touchUpInside)
+        let termsLink = UIButton(type: .custom); termsLink.configuration = nil; termsLink.backgroundColor = .clear; termsLink.setAttributedTitle(NSAttributedString(string: "Terms of Service", attributes: [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: QTheme.highlight, .underlineStyle: NSUnderlineStyle.single.rawValue]), for: .normal); termsLink.addAction(UIAction { [weak self] _ in self?.push(PolicyViewController(title: "Terms of Service", urlString: "https://sites.google.com/view/qrovo/users")) }, for: .touchUpInside)
         let andLabel = label("and", size: 10, color: QTheme.secondaryText); andLabel.numberOfLines = 1
-        let privacyLink = UIButton(type: .custom); privacyLink.configuration = nil; privacyLink.backgroundColor = .clear; privacyLink.setAttributedTitle(NSAttributedString(string: "Privacy Policy", attributes: [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: QTheme.highlight, .underlineStyle: NSUnderlineStyle.single.rawValue]), for: .normal); privacyLink.addAction(UIAction { [weak self] _ in self?.push(PolicyViewController(title: "Privacy Policy")) }, for: .touchUpInside)
+        let privacyLink = UIButton(type: .custom); privacyLink.configuration = nil; privacyLink.backgroundColor = .clear; privacyLink.setAttributedTitle(NSAttributedString(string: "Privacy Policy", attributes: [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: QTheme.highlight, .underlineStyle: NSUnderlineStyle.single.rawValue]), for: .normal); privacyLink.addAction(UIAction { [weak self] _ in self?.push(PolicyViewController(title: "Privacy Policy", urlString: "https://sites.google.com/view/qrovo/privacy")) }, for: .touchUpInside)
         [agreementPrefix, termsLink, andLabel, privacyLink].forEach { item in
             item.setContentHuggingPriority(.required, for: .horizontal)
             item.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -34,6 +34,7 @@ final class LandingViewController: QViewController {
         ])
         newButton.addAction(UIAction { _ in AppCoordinator.shared.showMain() }, for: .touchUpInside)
         emailButton.addAction(UIAction { [weak self] _ in guard let self else { return }; guard agreement else { showMessage("Agreement required", "Please agree to the Terms of Service and Privacy Policy before continuing."); return }; push(SignInViewController()) }, for: .touchUpInside)
+        signup.addAction(UIAction { [weak self] _ in guard let self else { return }; guard agreement else { showMessage("Agreement required", "Please agree to the Terms of Service and Privacy Policy before continuing."); return }; push(SignUpViewController()) }, for: .touchUpInside)
     }
     private func push(_ vc: UIViewController) { navigationController?.pushViewController(vc, animated: true) }
 }
@@ -48,16 +49,52 @@ class FormViewController: QViewController {
 
 final class SignInViewController: FormViewController {
     private let email = UITextField(); private let password = UITextField()
-    override func viewDidLoad() { super.viewDidLoad(); addTitle("Sign In"); email.placeholder = "Enter Email Address"; password.placeholder = "Enter Password"; [email, password].forEach { $0.textColor = .white; $0.backgroundColor = QTheme.surface; $0.layer.cornerRadius = 10; $0.layer.borderWidth = 1; $0.layer.borderColor = QTheme.divider.cgColor; $0.heightAnchor.constraint(equalToConstant: 42).isActive = true; $0.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1)); $0.leftViewMode = .always }; password.isSecureTextEntry = true; addField("Email", email); addField("Password", password); let forgot = UIButton(type: .system); forgot.setTitle("Forgot Password?", for: .normal); forgot.setTitleColor(QTheme.highlight, for: .normal); forgot.contentHorizontalAlignment = .left; forgot.addAction(UIAction { [weak self] _ in self?.navigationController?.pushViewController(ForgotPasswordViewController(), animated: true) }, for: .touchUpInside); formStack.addArrangedSubview(forgot); addBottomButton("Confirm profile") { [weak self] in guard let self else { return }; if QRepository.shared.authenticate(email: email.text ?? "", password: password.text ?? "") { AppCoordinator.shared.showMain() } else { showMessage("Unable to sign in", "Check your email and password and try again.") } } }
+    override func viewDidLoad() { super.viewDidLoad(); addTitle("Sign In"); email.placeholder = "Enter Email Address"; password.placeholder = "Enter Password"; [email, password].forEach { $0.textColor = .white; $0.backgroundColor = QTheme.surface; $0.layer.cornerRadius = 10; $0.layer.borderWidth = 1; $0.layer.borderColor = QTheme.divider.cgColor; $0.heightAnchor.constraint(equalToConstant: 42).isActive = true; $0.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1)); $0.leftViewMode = .always }; password.isSecureTextEntry = true; addField("Email", email); addField("Password", password); let forgot = UIButton(type: .system); forgot.setTitle("Forgot Password?", for: .normal); forgot.setTitleColor(QTheme.highlight, for: .normal); forgot.contentHorizontalAlignment = .left; forgot.addAction(UIAction { [weak self] _ in self?.navigationController?.pushViewController(ForgotPasswordViewController(), animated: true) }, for: .touchUpInside); formStack.addArrangedSubview(forgot); addBottomButton("Sign in") { [weak self] in guard let self else { return }; if QRepository.shared.authenticate(email: email.text ?? "", password: password.text ?? "") { AppCoordinator.shared.showMain() } else { showMessage("Unable to sign in", "Check your email and password and try again.") } } }
 }
 
 final class SignUpViewController: FormViewController {
-    private let email = UITextField(); private let password = UITextField(); private let confirm = UITextField()
-    override func viewDidLoad() { super.viewDidLoad(); addTitle("Sign Up"); email.placeholder = "Enter Email Address"; password.placeholder = "Enter Password"; confirm.placeholder = "Please Enter The Password Again"; [email, password, confirm].enumerated().forEach { index, f in f.textColor = .white; f.backgroundColor = QTheme.surface; f.layer.cornerRadius = 10; f.layer.borderWidth = 1; f.layer.borderColor = QTheme.divider.cgColor; f.heightAnchor.constraint(equalToConstant: 42).isActive = true; f.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1)); f.leftViewMode = .always; f.isSecureTextEntry = index > 0; f.keyboardType = index == 0 ? .emailAddress : .numberPad }; addField("Email", email); addField("Password", password); addField("Password", confirm); addBottomButton("Confirm profile") { [weak self] in guard let self else { return }; let passwordIsSixDigits = password.text?.count == 6 && password.text?.allSatisfy({ $0.isNumber }) == true; guard email.text?.contains("@") == true, passwordIsSixDigits, password.text == confirm.text else { showMessage("Check your details", "Enter a valid email and matching six-digit password."); return }; guard QRepository.shared.register(email: email.text ?? "", password: password.text ?? "") else { showMessage("Account already exists", "Use a different email or sign in to continue."); return }; navigationController?.pushViewController(ProfileSetupViewController(), animated: true) } }
-}
+    private let email = UITextField()
+    private let password = UITextField()
+    private let confirm = UITextField()
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        addTitle("Sign Up")
+        email.placeholder = "Enter Email Address"
+        password.placeholder = "Enter Password"
+        confirm.placeholder = "Please Enter The Password Again"
+        [email, password, confirm].enumerated().forEach { index, field in
+            field.textColor = .white
+            field.backgroundColor = QTheme.surface
+            field.layer.cornerRadius = 10
+            field.layer.borderWidth = 1
+            field.layer.borderColor = QTheme.divider.cgColor
+            field.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1))
+            field.leftViewMode = .always
+            field.isSecureTextEntry = index > 0
+            field.keyboardType = index == 0 ? .emailAddress : .numberPad
+        }
+        addField("Email", email)
+        addField("Password", password)
+        addField("Password", confirm)
+        addBottomButton("Sign up") { [weak self] in
+            guard let self else { return }
+            let passwordIsSixDigits = password.text?.count == 6 && password.text?.allSatisfy({ $0.isNumber }) == true
+            guard email.text?.contains("@") == true, passwordIsSixDigits, password.text == confirm.text else {
+                showMessage("Check your details", "Enter a valid email and matching six-digit password.")
+                return
+            }
+            guard QRepository.shared.register(email: email.text ?? "", password: password.text ?? "") else {
+                showMessage("Account already exists", "Use a different email or sign in to continue.")
+                return
+            }
+            navigationController?.pushViewController(ProfileSetupViewController(), animated: true)
+        }
+    }
+}
 final class ForgotPasswordViewController: FormViewController {
-    override func viewDidLoad() { super.viewDidLoad(); addTitle("Forgot\nPassword"); let email = textField("Enter Email Address"); let pass = textField("Enter Password", secure: true); let confirm = textField("Please Enter The Password Again", secure: true); addField("Email", email); addField("Password", pass); addField("Password", confirm); addBottomButton("Confirm profile") { [weak self] in guard let self else { return }; guard pass.text == confirm.text, (pass.text?.count ?? 0) >= 8, QRepository.shared.resetPassword(email: email.text ?? "", password: pass.text ?? "") else { showMessage("Unable to reset password", "Check the email and password fields."); return }; showMessage("Password updated", "You can sign in with your new password.") { self.navigationController?.popViewController(animated: true) } } }
+    override func viewDidLoad() { super.viewDidLoad(); addTitle("Forgot\nPassword"); let email = textField("Enter Email Address"); let pass = textField("Enter Password", secure: true); let confirm = textField("Please Enter The Password Again", secure: true); addField("Email", email); addField("Password", pass); addField("Password", confirm); addBottomButton("Save") { [weak self] in guard let self else { return }; guard pass.text == confirm.text, (pass.text?.count ?? 0) >= 8, QRepository.shared.resetPassword(email: email.text ?? "", password: pass.text ?? "") else { showMessage("Unable to reset password", "Check the email and password fields."); return }; showMessage("Password updated", "You can sign in with your new password.") { self.navigationController?.popViewController(animated: true) } } }
 }
 
 final class ProfileSetupViewController: FormViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UITextFieldDelegate {
@@ -208,7 +245,7 @@ final class QDatePickerSheet: UIViewController {
     init(onDone: @escaping (Date) -> Void) { self.onDone = onDone; super.init(nibName: nil, bundle: nil) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     private func dateLabel(_ text: String, size: CGFloat, weight: UIFont.Weight, color: UIColor = QTheme.text) -> UILabel { let view = UILabel(); view.text = text; view.textColor = color; view.font = .systemFont(ofSize: size, weight: weight); return view }
-    override func viewDidLoad() { super.viewDidLoad(); view.backgroundColor = UIColor.black.withAlphaComponent(0.62); let card = UIView(); card.backgroundColor = UIColor(hex: "1A1740"); card.layer.cornerRadius = 18; card.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]; view.addSubview(card); card.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([card.leadingAnchor.constraint(equalTo: view.leadingAnchor), card.trailingAnchor.constraint(equalTo: view.trailingAnchor), card.bottomAnchor.constraint(equalTo: view.bottomAnchor)]); let title = dateLabel("Birthday", size: 17, weight: .bold); title.textAlignment = .center; let picker = UIDatePicker(); picker.datePickerMode = .date; picker.preferredDatePickerStyle = .wheels; picker.maximumDate = Date(); let done = QGradientButton(frame: .zero); done.setTitle("Done", for: .normal); done.layer.cornerRadius = 12; done.heightAnchor.constraint(equalToConstant: 46).isActive = true; done.addAction(UIAction { [weak self, weak picker] _ in guard let self else { return }; dismiss(animated: true) { self.onDone(picker?.date ?? Date()) } }, for: .touchUpInside); let stack = UIStackView(arrangedSubviews: [title, picker, done]); stack.axis = .vertical; stack.spacing = 10; card.addSubview(stack); stack.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16), stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16), stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 24), stack.bottomAnchor.constraint(equalTo: card.safeAreaLayoutGuide.bottomAnchor, constant: -16)]) }
+    override func viewDidLoad() { super.viewDidLoad(); view.backgroundColor = UIColor.black.withAlphaComponent(0.62); let card = UIView(); card.backgroundColor = UIColor(hex: "1A1740"); card.layer.cornerRadius = 18; card.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]; view.addSubview(card); card.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([card.leadingAnchor.constraint(equalTo: view.leadingAnchor), card.trailingAnchor.constraint(equalTo: view.trailingAnchor), card.bottomAnchor.constraint(equalTo: view.bottomAnchor)]); let title = dateLabel("Birthday", size: 17, weight: .bold); title.textAlignment = .center; let picker = UIDatePicker(); picker.datePickerMode = .date; picker.preferredDatePickerStyle = .wheels; picker.maximumDate = Calendar.current.date(byAdding: .year, value: -18, to: Date()); let defaultBirthday = Calendar.current.date(from: DateComponents(year: 2000, month: 1, day: 1)) ?? Date(); picker.date = min(defaultBirthday, picker.maximumDate ?? defaultBirthday); let done = QGradientButton(frame: .zero); done.setTitle("Done", for: .normal); done.layer.cornerRadius = 12; done.heightAnchor.constraint(equalToConstant: 46).isActive = true; done.addAction(UIAction { [weak self, weak picker] _ in guard let self else { return }; dismiss(animated: true) { self.onDone(picker?.date ?? Date()) } }, for: .touchUpInside); let stack = UIStackView(arrangedSubviews: [title, picker, done]); stack.axis = .vertical; stack.spacing = 10; card.addSubview(stack); stack.translatesAutoresizingMaskIntoConstraints = false; NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16), stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16), stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 24), stack.bottomAnchor.constraint(equalTo: card.safeAreaLayoutGuide.bottomAnchor, constant: -16)]) }
 }
 
 final class QDrawFilterSheet: UIViewController {
@@ -310,8 +347,9 @@ extension QDrawFilterSheet: UIGestureRecognizerDelegate {
 
 final class PolicyViewController: QViewController {
     private let pageTitle: String
-    init(title: String = "Privacy Policy") { pageTitle = title; super.init(nibName: nil, bundle: nil) }
-    required init?(coder: NSCoder) { pageTitle = "Privacy Policy"; super.init(coder: coder) }
+    private let urlString: String
+    init(title: String = "Privacy Policy", urlString: String = "https://sites.google.com/view/qrovo/privacy") { pageTitle = title; self.urlString = urlString; super.init(nibName: nil, bundle: nil) }
+    required init?(coder: NSCoder) { pageTitle = "Privacy Policy"; urlString = "https://sites.google.com/view/qrovo/privacy"; super.init(coder: coder) }
     override func viewDidLoad() {
         super.viewDidLoad()
         let header = navHeader(pageTitle)
@@ -333,7 +371,7 @@ final class PolicyViewController: QViewController {
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        guard let url = URL(string: "https://www.baidu.com") else { return }
+        guard let url = URL(string: urlString) else { return }
         webView.load(URLRequest(url: url))
     }
 }
@@ -348,7 +386,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
         let appearance = UITabBarAppearance(); appearance.configureWithOpaqueBackground(); appearance.backgroundColor = UIColor(hex: "0D0F12", alpha: 0.97); appearance.shadowColor = UIColor(hex: "24262B")
         configure(appearance.stackedLayoutAppearance); configure(appearance.inlineLayoutAppearance); configure(appearance.compactInlineLayoutAppearance)
         tabBar.standardAppearance = appearance; tabBar.scrollEdgeAppearance = appearance; tabBar.backgroundImage = UIImage(); tabBar.shadowImage = UIImage(); tabBar.backgroundColor = UIColor(hex: "0D0F12"); tabBar.isTranslucent = false; tabBar.itemPositioning = .fill; tabBar.tintColor = .clear; tabBar.unselectedItemTintColor = .clear; tabBar.layer.cornerRadius = 0; tabBar.layer.masksToBounds = true
-        let pages: [(UIViewController, String, String)] = [(ExploreViewController(), "Explore", "tab1"), (DrawViewController(), "Draw", "tab2"), (PublishViewController(), "Publish", "tab3"), (InboxViewController(), "Inbox", "tab4"), (ProfileViewController(), "Profile", "tab5")]
+        let pages: [(UIViewController, String, String)] = [(ExploreViewController(), "Home", "tab1"), (DrawViewController(), "Discover", "tab2"), (PublishViewController(), "Publish", "tab3"), (InboxViewController(), "Inbox", "tab4"), (ProfileViewController(), "Profile", "tab5")]
         viewControllers = pages.enumerated().map { index, item in
             let nav = UINavigationController(rootViewController: item.0); nav.delegate = self; nav.setNavigationBarHidden(true, animated: false)
             let normal = (UIImage.qAsset(item.2) ?? UIImage.qAsset("tab/\(item.2)") ?? UIImage(systemName: "circle"))?.withRenderingMode(.alwaysOriginal)
@@ -366,7 +404,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
     override func viewDidLayoutSubviews() { super.viewDidLayoutSubviews(); updateTabBarVisibility() }
     private func updateTabBarVisibility() { tabBar.isHidden = true; tabBar.alpha = 0; guard let nav = selectedViewController as? UINavigationController else { return }; let isRoot = nav.viewControllers.count == 1; customTabBar.isHidden = !isRoot; nav.additionalSafeAreaInsets.bottom = isRoot ? 83 : 0 }
     func navigationController(_ navigationController: UINavigationController, didShow viewController: UIViewController, animated: Bool) { updateTabBarVisibility() }
-    func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool { guard let index = viewControllers?.firstIndex(of: viewController) else { return true }; if !repo.isSignedIn && index >= 2 { showGuestSignInSheet(); return false }; return true }
+    func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool { guard let index = viewControllers?.firstIndex(of: viewController) else { return true }; if !repo.isSignedIn && index >= 1 { showGuestSignInSheet(); return false }; return true }
     private func showGuestSignInSheet() { let alert = QAlertViewController(titleText: "Sign In Required", messageText: "Please sign in to continue.", cancelTitle: nil, confirmTitle: "Sign In") { AppCoordinator.shared.showAuth() }; alert.modalPresentationStyle = .overFullScreen; alert.modalTransitionStyle = .crossDissolve; present(alert, animated: true) }
     func presentPublish(for post: QPost) { let task = post.taskID.flatMap { repo.drawTask(id: $0) } ?? QDrawTask(id: "post-\(post.id)", title: post.title, body: "Complete the task and share your proof.", mediaAsset: post.mediaAssets.first ?? "default_photo", durationHours: 24, distanceMiles: nil); presentPublish(for: task) }
     func presentPublish(for task: QDrawTask) {
@@ -405,7 +443,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
     private func presentClaimedPublish(_ task: QDrawTask) { claimedPublishTask = task; claimedPublishAt = Date(); let publish = PublishViewController(task: task, claimedAt: claimedPublishAt); publish.modalPresentationStyle = .fullScreen; present(publish, animated: true) }
     func clearClaimedPublishTask() { claimedPublishTask = nil; claimedPublishAt = nil }
     func showExplore() { guard let controllers = viewControllers, controllers.indices.contains(0), let nav = controllers[0] as? UINavigationController else { return }; nav.popToRootViewController(animated: false); selectedIndex = 0; customTabBar.selectedIndex = 0; updateTabBarVisibility() }
-    private func selectTab(_ index: Int) { guard let controllers = viewControllers, controllers.indices.contains(index) else { return }; guard tabBarController(self, shouldSelect: controllers[index]) else { return }; if index == 2 { guard let task = claimedPublishTask else { showToast("Draw a task before publishing"); return }; let publish = PublishViewController(task: task, claimedAt: claimedPublishAt); publish.modalPresentationStyle = .fullScreen; present(publish, animated: true); return }; selectedIndex = index; customTabBar.selectedIndex = index }
+    private func selectTab(_ index: Int) { guard let controllers = viewControllers, controllers.indices.contains(index) else { return }; guard tabBarController(self, shouldSelect: controllers[index]) else { return }; if index == 2 { selectedIndex = 1; customTabBar.selectedIndex = 1; guard let task = claimedPublishTask else { showToast("Draw a task before publishing"); return }; let publish = PublishViewController(task: task, claimedAt: claimedPublishAt); publish.modalPresentationStyle = .fullScreen; present(publish, animated: true); return }; selectedIndex = index; customTabBar.selectedIndex = index }
     private func showToast(_ text: String) {
         let toast = UIView()
         toast.backgroundColor = UIColor(hex: "242033").withAlphaComponent(0.96)
@@ -443,7 +481,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
 final class QCustomTabBar: UIView {
     var onSelect: ((Int) -> Void)?
     var selectedIndex = 0 { didSet { updateSelection() } }
-    private let items = [("Explore", "tab1"), ("Draw", "tab2"), ("Publish", "tab3"), ("Inbox", "tab4"), ("Profile", "tab5")]
+    private let items = [("Home", "tab1"), ("Discover", "tab2"), ("Publish", "tab3"), ("Inbox", "tab4"), ("Profile", "tab5")]
     private var buttons: [UIButton] = []
     override init(frame: CGRect) { super.init(frame: frame); build() }
     required init?(coder: NSCoder) { super.init(coder: coder); build() }
